@@ -1,5 +1,10 @@
 # PogodaiRadar для Home Assistant
 
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
+[![GitHub Release](https://img.shields.io/github/v/release/mrkaktuz/ha-pogodairadar)](https://github.com/mrkaktuz/ha-pogodairadar/releases)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-41BDF5.svg)](https://www.home-assistant.io/)
+[![GitHub Stars](https://img.shields.io/github/stars/mrkaktuz/ha-pogodairadar?style=social)](https://github.com/mrkaktuz/ha-pogodairadar/stargazers)
+
 Кастомна інтеграція погоди для [pogodairadar.com.ua](https://www.pogodairadar.com.ua) з підтримкою:
 
 - поточної погоди;
