@@ -1,0 +1,15 @@
+{
+  "domain": "pogodairadar",
+  "name": "PogodaiRadar",
+  "homeassistant": "2024.1.0",
+  "codeowners": [
+    "@kaktuz"
+  ],
+  "config_flow": true,
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "requirements": [
+    "aiohttp>=3.9.0"
+  ],
+  "version": "1.0.0"
+}

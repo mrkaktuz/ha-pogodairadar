@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "PogodaiRadar",
+        "description": "Вкажіть slug з URL сторінки погоди (наприклад з https://www.pogodairadar.com.ua/storinka-pohody/buca/6702741 це **buca/6702741**).",
+        "data": {
+          "slug": "Slug (місто/geo id)",
+          "scan_interval": "Частота оновлення"
+        }
+      },
+      "init": {
+        "title": "Налаштування",
+        "data": {
+          "scan_interval": "Частота оновлення"
+        }
+      }
+    },
+    "error": {
+      "invalid_slug": "Slug має бути у форматі назва/id, наприклад buca/6702741"
+    }
+  }
+}
