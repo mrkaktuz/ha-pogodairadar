@@ -32,3 +32,7 @@
 Інтеграція знаходиться в:
 
 `custom_components/pogodairadar/`
+
+Брендинг для іконок HA (інтеграції/пристрою):
+
+`custom_components/pogodairadar/brand/`
