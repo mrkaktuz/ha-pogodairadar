@@ -105,29 +105,94 @@ def _probability_pct(value: Any) -> int | None:
     return int(round(max(0, min(100, val))))
 
 
+# WetterOnline / pogodairadar symbol → HA condition (aligned with main.js scene data + uk translations).
+_WO_THUNDER = re.compile(r"^[bdmw][bdmw]g[123]")
+_WO_SNOW_THUNDER = re.compile(r"^[bdmw][bdmw]sg")
+_WO_SNOW_FLURRIES = re.compile(r"^[bdmw][bdmw]s[123]_")
+
+
 def symbol_to_condition(symbol: str | None) -> str:
-    """Map WetterOnline symbol code to Home Assistant condition."""
+    """Map WetterOnline symbol code to Home Assistant weather condition.
+
+    Logic follows WO bundles (regex → cloudy/rain/snow/…) and uk symbol labels in translations.
+    HA only supports a fixed set of conditions; we pick the closest match.
+    """
     if not symbol:
         return "cloudy"
     s = symbol.lower().strip()
-    if any(x in s for x in ("sr", "lr", "mr", "hr", "rr", "rs", "r1", "r2", "r3", "r4")):
-        if "s" in s[:2] or s.startswith("sn") or "sf" in s:
-            return "snowy"
-        if "rs" in s or ("sr" in s and "sn" in s):
-            return "snowy-rainy"
-        return "rainy"
-    if s.startswith("sn") or "sf" in s or s.startswith("s_") or "ds" in s:
-        return "snowy"
-    if "nb" in s or "nf" in s:
+
+    # Smog (am____, an____, ap____, as____) — no HA «smog»; fog is the closest UX.
+    if s.startswith(("am", "an", "ap", "as")):
         return "fog"
+
+    # Fog / mist (nb____, nn____); mixed sun/fog (nm____, ns____) → partlycloudy
+    if s.startswith(("nb", "nn")):
+        return "fog"
+    if s.startswith(("nm", "ns")):
+        return "partlycloudy"
+
+    # Polar / extreme cold pictograms (ca____, …) — exceptional avoids wrong «snow» when no snowfall.
+    if s.startswith(("ca", "cm", "cn", "cs")):
+        return "exceptional"
+
+    # Clear sky: so = sunny, ms = cloudless day, mo = clear night (translations.js).
+    if s.startswith("so"):
+        return "sunny"
+    if s.startswith("ms"):
+        return "sunny"
+    if s.startswith("mo"):
+        return "clear-night"
+
+    # Thunder (гроза): *g[123]__ — usually with rain in WO data.
+    if _WO_THUNDER.match(s):
+        return "lightning-rainy"
+
+    # Snow + lightning (sg__)
+    if _WO_SNOW_THUNDER.match(s):
+        return "snowy"
+
+    # Sleet / rain–snow mix
+    if "srs" in s or "dsrs" in s or "wsrs" in s or re.search(r"sr[123]", s):
+        return "snowy-rainy"
+
+    # Snow showers / flurries
+    if _WO_SNOW_FLURRIES.match(s) or re.search(r"sn[123]", s) or "sns" in s:
+        return "snowy"
+
+    # Rain intensity (r3 = heavy → pouring)
+    if "r3__" in s:
+        return "pouring"
+    if "r1__" in s or "r2__" in s:
+        return "rainy"
+    if "gr1_" in s or "gr2_" in s:
+        return "rainy"
+
+    if any(x in s for x in ("lr", "mr", "hr", "rr")):
+        return "rainy"
+
+    # Base cloud cover (exact 6-char icons from WO symbol set — not bds1__/bdr1__/…).
+    if s == "mm____":
+        return "partlycloudy"
+    if s in ("wb____", "mb____"):
+        return "partlycloudy"
+    if s in ("bw____", "mw____"):
+        return "cloudy"
+    if s in ("bd____", "md____"):
+        return "cloudy"
+
     if s.startswith("ww") and "r" not in s:
         return "partlycloudy"
-    if s.startswith("w") and len(s) >= 2 and s[1] in "_w":
-        return "sunny"
+    if s.startswith("w") and len(s) >= 2:
+        if s[1] in "_w":
+            return "sunny"
+        if s[1] == "b":
+            return "partlycloudy"
+
     if s.startswith(("b", "m", "d")):
         if "w" in s[2:4] or s[2:4] == "__":
             return "partlycloudy"
         return "cloudy"
+
     return "cloudy"
 
 
