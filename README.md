@@ -5,6 +5,10 @@
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-41BDF5.svg)](https://www.home-assistant.io/)
 [![GitHub Stars](https://img.shields.io/github/stars/mrkaktuz/ha-pogodairadar?style=social)](https://github.com/mrkaktuz/ha-pogodairadar/stargazers)
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mrkaktuz/ha-pogodairadar/master/custom_components/pogodairadar/icon.png" alt="PogodaiRadar" width="128" height="128" />
+</p>
+
 Кастомна інтеграція погоди для [pogodairadar.com.ua](https://www.pogodairadar.com.ua) з підтримкою:
 
 - поточної погоди;

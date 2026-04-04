@@ -29,7 +29,9 @@
 
 ## Брендинг
 
-- Іконка інтеграції: `custom_components/pogodairadar/icon.png`.
+- Іконка в каталозі інтеграції: `custom_components/pogodairadar/icon.png` (зворотна сумісність).
+- Для HA 2026.3+ — каталог `custom_components/pogodairadar/brand/` з `icon.png`, `logo.png`, `dark_*` та варіантами `@2x` (див. [brand images](https://developers.home-assistant.io/docs/core/integration/brand_images)).
+- У README — зображення логотипу з `raw.githubusercontent.com`, щоб HACS показував його на сторінці інтеграції (обмеження HACS щодо локального `brand/` у списку, див. [hacs/integration#5171](https://github.com/hacs/integration/issues/5171)).
 - Виробник у DeviceInfo: `kaktuz`.
 
 ## Перевірки перед публікацією
