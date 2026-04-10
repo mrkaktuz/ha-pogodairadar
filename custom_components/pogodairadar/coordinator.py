@@ -196,6 +196,30 @@ def symbol_to_condition(symbol: str | None) -> str:
     return "cloudy"
 
 
+def observation_to_condition(obs: dict[str, Any] | None) -> str:
+    """Map shortcast/blending observation (current, hour, or day) to HA condition.
+
+    WetterOnline may set a snow-pictogram code (e.g. ``mds2__`` for night/mixed UI)
+    while ``precipitation.type`` is ``rain``. The site then shows rain (e.g. ``bdr1__``)
+    for hourly slots. Prefer explicit ``precipitation.type`` when it contradicts
+    a snow-only mapping from ``symbol``.
+    """
+    if not obs:
+        return "cloudy"
+    sym = obs.get("symbol")
+    prec = obs.get("precipitation") or {}
+    ptype = (prec.get("type") or "").strip().lower()
+    mapped = symbol_to_condition(sym)
+
+    if ptype == "rain" and mapped in ("snowy", "snowy-rainy"):
+        s = (sym or "").lower()
+        if "r3__" in s:
+            return "pouring"
+        return "rainy"
+
+    return mapped
+
+
 def parse_server_state(raw_json: str) -> dict[str, Any]:
     """Extract structured weather data from serverApp-state."""
     data = json.loads(raw_json)

@@ -19,7 +19,7 @@ from .coordinator import (
     _temp_c,
     _wind_deg,
     _wind_ms,
-    symbol_to_condition,
+    observation_to_condition,
 )
 
 
@@ -102,7 +102,7 @@ class PogodaIRadarWeather(CoordinatorEntity[PogodaIRadarCoordinator], WeatherEnt
 
     @property
     def condition(self) -> str | None:
-        return symbol_to_condition((self.coordinator.data.get("current") or {}).get("symbol"))
+        return observation_to_condition(self.coordinator.data.get("current"))
 
     @property
     def native_precipitation_unit(self) -> str:
@@ -164,7 +164,7 @@ class PogodaIRadarWeather(CoordinatorEntity[PogodaIRadarCoordinator], WeatherEnt
             out.append(
                 Forecast(
                     datetime=h.get("date"),
-                    condition=symbol_to_condition(h.get("symbol")),
+                    condition=observation_to_condition(h),
                     native_temperature=_temp_c(h.get("air_temperature")),
                     precipitation_probability=_probability_pct(precip.get("probability")),
                     wind_bearing=_wind_deg(h.get("wind")),
@@ -181,7 +181,7 @@ class PogodaIRadarWeather(CoordinatorEntity[PogodaIRadarCoordinator], WeatherEnt
             out.append(
                 Forecast(
                     datetime=d.get("date"),
-                    condition=symbol_to_condition(d.get("symbol")),
+                    condition=observation_to_condition(d),
                     native_temperature=_temp_c(at.get("max")),
                     native_templow=_temp_c(at.get("min")),
                     precipitation_probability=_probability_pct(precip.get("probability")),

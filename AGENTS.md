@@ -19,7 +19,7 @@
 
 - Версія в `custom_components/pogodairadar/manifest.json`.
 - Для релізу оновлювати версію в `manifest.json`, додати рядок у `CHANGELOG.md` і створити git tag (`vX.Y.Z`).
-- Мапінг умов погоди (`symbol_to_condition`) — у `coordinator.py`; зміни варто звіряти з актуальними символами WetterOnline у фронтенд-бандлі, не комітити локальні `debug_src_files/` чи збережені HTML.
+- Мапінг умов погоди (`symbol_to_condition`, узгодження з `precipitation.type` — `observation_to_condition`) — у `coordinator.py`; зміни варто звіряти з актуальними символами WetterOnline у фронтенд-бандлі, не комітити локальні `debug_src_files/` чи збережені HTML.
 
 ## HACS
 
