@@ -220,6 +220,28 @@ def observation_to_condition(obs: dict[str, Any] | None) -> str:
     return mapped
 
 
+def _visibility_meters_from_shortcast_hour(hour: dict[str, Any] | None) -> float | None:
+    """Extract horizontal visibility in metres from one shortcast hour slot."""
+    if not hour:
+        return None
+    vis = hour.get("visibility")
+    if not isinstance(vis, dict):
+        return None
+    m = vis.get("meter")
+    if m is not None:
+        try:
+            return float(m)
+        except (TypeError, ValueError):
+            pass
+    ft = vis.get("feet")
+    if ft is not None:
+        try:
+            return round(float(ft) * 0.3048, 1)
+        except (TypeError, ValueError):
+            pass
+    return None
+
+
 def parse_server_state(raw_json: str) -> dict[str, Any]:
     """Extract structured weather data from serverApp-state."""
     data = json.loads(raw_json)
@@ -257,6 +279,9 @@ def parse_server_state(raw_json: str) -> dict[str, Any]:
             if sunrise or sunset:
                 break
 
+    # WO shortcast "current" often has no visibility; use first hourly slot (nearest hour).
+    nearest_hour = hours[0] if hours else None
+
     return {
         "location_name": name,
         "latitude": geo_obj.get("latitude"),
@@ -269,6 +294,7 @@ def parse_server_state(raw_json: str) -> dict[str, Any]:
         "warn_maps": warn_maps,
         "sunrise": sunrise,
         "sunset": sunset,
+        "current_visibility_m": _visibility_meters_from_shortcast_hour(nearest_hour),
     }
 
 

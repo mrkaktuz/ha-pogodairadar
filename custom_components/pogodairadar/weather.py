@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.components.weather import Forecast, WeatherEntity, WeatherEntityFeature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfPressure, UnitOfSpeed, UnitOfTemperature
+from homeassistant.const import UnitOfLength, UnitOfPressure, UnitOfSpeed, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -17,6 +17,7 @@ from .coordinator import (
     PogodaIRadarCoordinator,
     _probability_pct,
     _temp_c,
+    _visibility_meters_from_shortcast_hour,
     _wind_deg,
     _wind_ms,
     observation_to_condition,
@@ -46,6 +47,7 @@ class PogodaIRadarWeather(CoordinatorEntity[PogodaIRadarCoordinator], WeatherEnt
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_native_pressure_unit = UnitOfPressure.HPA
     _attr_native_wind_speed_unit = UnitOfSpeed.KILOMETERS_PER_HOUR
+    _attr_native_visibility_unit = UnitOfLength.METERS
     _attr_supported_features = (
         WeatherEntityFeature.FORECAST_DAILY | WeatherEntityFeature.FORECAST_HOURLY
     )
@@ -99,6 +101,16 @@ class PogodaIRadarWeather(CoordinatorEntity[PogodaIRadarCoordinator], WeatherEnt
     @property
     def wind_bearing(self) -> int | None:
         return _wind_deg((self.coordinator.data.get("current") or {}).get("wind"))
+
+    @property
+    def native_visibility(self) -> float | None:
+        v = self.coordinator.data.get("current_visibility_m")
+        if v is None:
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
 
     @property
     def condition(self) -> str | None:
@@ -161,16 +173,18 @@ class PogodaIRadarWeather(CoordinatorEntity[PogodaIRadarCoordinator], WeatherEnt
         out: list[Forecast] = []
         for h in data.get("hours") or []:
             precip = h.get("precipitation") or {}
-            out.append(
-                Forecast(
-                    datetime=h.get("date"),
-                    condition=observation_to_condition(h),
-                    native_temperature=_temp_c(h.get("air_temperature")),
-                    precipitation_probability=_probability_pct(precip.get("probability")),
-                    wind_bearing=_wind_deg(h.get("wind")),
-                    native_wind_speed=_ms_to_kmh(_wind_ms(h.get("wind"))),
-                )
-            )
+            vis_m = _visibility_meters_from_shortcast_hour(h)
+            row: dict[str, Any] = {
+                "datetime": h.get("date"),
+                "condition": observation_to_condition(h),
+                "native_temperature": _temp_c(h.get("air_temperature")),
+                "precipitation_probability": _probability_pct(precip.get("probability")),
+                "wind_bearing": _wind_deg(h.get("wind")),
+                "native_wind_speed": _ms_to_kmh(_wind_ms(h.get("wind"))),
+            }
+            if vis_m is not None:
+                row["native_visibility"] = vis_m
+            out.append(Forecast(**row))
         return out
 
     def _daily_week(self, data: dict[str, Any]) -> list[Forecast]:
