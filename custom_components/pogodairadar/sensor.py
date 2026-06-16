@@ -32,7 +32,6 @@ async def async_setup_entry(
     )
     async_add_entities(
         [
-            PogodaTodayTextSensor(coordinator, entry, uid, dev),
             PogodaTextForecastSensor(coordinator, entry, uid, dev),
             PogodaWarningsSensor(coordinator, entry, uid, dev),
             PogodaLastUpdateSensor(coordinator, entry, uid, dev),
@@ -56,40 +55,12 @@ class _PogodaSensor(CoordinatorEntity[PogodaIRadarCoordinator], SensorEntity):
         self._attr_device_info = device_info
 
 
-class PogodaTodayTextSensor(_PogodaSensor):
-    """Today / coming-hours weather summary (blending one_day texts)."""
-
-    _attr_icon = "mdi:weather-partly-cloudy"
-
-    @property
-    def unique_id(self) -> str:
-        return f"{self._uid_base}_today_text"
-
-    @property
-    def native_value(self) -> str | None:
-        text = (self.coordinator.data.get("today_text") or "").strip()
-        if not text:
-            return None
-        return text[:250] + ("…" if len(text) > 250 else "")
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        attrs: dict[str, Any] = {}
-        text = (self.coordinator.data.get("today_text") or "").strip()
-        if len(text) > 250:
-            attrs["full_text"] = text
-        days = self.coordinator.data.get("day_texts") or []
-        if days:
-            attrs["forecast_texts"] = days
-        return attrs
-
-    @property
-    def name(self) -> str:
-        return "Прогноз на сьогодні"
-
-
 class PogodaTextForecastSensor(_PogodaSensor):
-    """Editorial text forecast."""
+    """Editorial text forecast.
+
+    State holds today's / coming-hours summary (blending one_day banner);
+    tomorrow's text and the per-day texts are exposed as attributes.
+    """
 
     _attr_icon = "mdi:calendar-text"
 
@@ -99,8 +70,26 @@ class PogodaTextForecastSensor(_PogodaSensor):
 
     @property
     def native_value(self) -> str | None:
-        text = (self.coordinator.data.get("tomorrow_text") or "").strip()
-        return text or None
+        text = (self.coordinator.data.get("today_text") or "").strip()
+        if not text:
+            text = (self.coordinator.data.get("tomorrow_text") or "").strip()
+        if not text:
+            return None
+        return text[:250] + ("…" if len(text) > 250 else "")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        attrs: dict[str, Any] = {}
+        today = (self.coordinator.data.get("today_text") or "").strip()
+        if len(today) > 250:
+            attrs["full_text"] = today
+        tomorrow = (self.coordinator.data.get("tomorrow_text") or "").strip()
+        if tomorrow:
+            attrs["tomorrow_text"] = tomorrow
+        days = self.coordinator.data.get("day_texts") or []
+        if days:
+            attrs["forecast_texts"] = days
+        return attrs
 
     @property
     def name(self) -> str:
