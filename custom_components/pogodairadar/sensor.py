@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -54,7 +56,11 @@ class _PogodaSensor(CoordinatorEntity[PogodaIRadarCoordinator], SensorEntity):
 
 
 class PogodaTextForecastSensor(_PogodaSensor):
-    """Editorial text forecast."""
+    """Editorial text forecast.
+
+    State holds today's / coming-hours summary (blending one_day banner);
+    tomorrow's text and the per-day texts are exposed as attributes.
+    """
 
     _attr_icon = "mdi:calendar-text"
 
@@ -64,8 +70,26 @@ class PogodaTextForecastSensor(_PogodaSensor):
 
     @property
     def native_value(self) -> str | None:
-        text = (self.coordinator.data.get("tomorrow_text") or "").strip()
-        return text or None
+        text = (self.coordinator.data.get("today_text") or "").strip()
+        if not text:
+            text = (self.coordinator.data.get("tomorrow_text") or "").strip()
+        if not text:
+            return None
+        return text[:250] + ("…" if len(text) > 250 else "")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        attrs: dict[str, Any] = {}
+        today = (self.coordinator.data.get("today_text") or "").strip()
+        if len(today) > 250:
+            attrs["full_text"] = today
+        tomorrow = (self.coordinator.data.get("tomorrow_text") or "").strip()
+        if tomorrow:
+            attrs["tomorrow_text"] = tomorrow
+        days = self.coordinator.data.get("day_texts") or []
+        if days:
+            attrs["forecast_texts"] = days
+        return attrs
 
     @property
     def name(self) -> str:

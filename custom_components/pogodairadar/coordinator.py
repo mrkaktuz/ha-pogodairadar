@@ -56,6 +56,25 @@ def _entry_by_url_substring(data: dict[str, Any], needle: str) -> Any | None:
     return None
 
 
+def _full_entry_by_url_substring(data: dict[str, Any], needle: str) -> Any | None:
+    """Like _entry_by_url_substring, but never collapses a list response to its first item."""
+    for key, val in data.items():
+        if needle in key:
+            return val
+    return None
+
+
+# WetterOnline inlines tokens like <WOCurrentTemperature>19</WOCurrentTemperature> in texts.
+_WO_TAG_RE = re.compile(r"</?WO[A-Za-z0-9]*>", re.IGNORECASE)
+
+
+def _clean_forecast_text(text: Any) -> str:
+    """Strip WetterOnline markup tags, keeping their inner value (e.g. the temperature)."""
+    if not text:
+        return ""
+    return _WO_TAG_RE.sub("", str(text)).strip()
+
+
 def _temp_c(val: Any) -> float | None:
     if val is None:
         return None
@@ -261,6 +280,18 @@ def parse_server_state(raw_json: str) -> dict[str, Any]:
     editorial = _entry_by_url_substring(data, "editorial-pull-notification") or {}
     tomorrow_text = (editorial.get("body") or "").strip()
 
+    # blending/texts/v1/one_day → list of per-day summaries; [0] is today's banner text.
+    texts_one_day = _full_entry_by_url_substring(data, "blending/texts/v1/one_day")
+    day_texts: list[dict[str, Any]] = []
+    if isinstance(texts_one_day, list):
+        for item in texts_one_day:
+            if not isinstance(item, dict):
+                continue
+            txt = _clean_forecast_text(item.get("text"))
+            if txt:
+                day_texts.append({"date": item.get("date"), "text": txt})
+    today_text = day_texts[0]["text"] if day_texts else ""
+
     warnings_v9 = _entry_by_url_substring(data, "warnings/v9") or {}
     warn_maps = _entry_by_url_substring(data, "warnings/maps") or {}
 
@@ -290,6 +321,8 @@ def parse_server_state(raw_json: str) -> dict[str, Any]:
         "hours": hours,
         "days": days,
         "tomorrow_text": tomorrow_text,
+        "today_text": today_text,
+        "day_texts": day_texts,
         "warnings_v9": warnings_v9,
         "warn_maps": warn_maps,
         "sunrise": sunrise,
