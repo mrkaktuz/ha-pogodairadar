@@ -292,7 +292,7 @@ def parse_server_state(raw_json: str) -> dict[str, Any]:
                 day_texts.append({"date": item.get("date"), "text": txt})
     today_text = day_texts[0]["text"] if day_texts else ""
 
-    warnings_v9 = _entry_by_url_substring(data, "warnings/v9") or {}
+    warnings_v9 = _full_entry_by_url_substring(data, "warnings/v9") or {}
     warn_maps = _entry_by_url_substring(data, "warnings/maps") or {}
 
     astro = _entry_by_url_substring(data, "astro/days") or {}
@@ -350,21 +350,50 @@ def _extract_state_json(html: str) -> str | None:
     return None
 
 
+def _warning_text(w: Any) -> str | None:
+    """Extract readable text from one warnings/v9 object.
+
+    Known shape (keyed by period, e.g. ``forecast``): ``{"type": "thunderstorm",
+    "title": "Метеорологічні попередження", "content": "Сьогодні після полудня
+    можливі сильні грози", "level": 2, "share": {"text": ...}, ...}``.
+    ``content`` holds the actual message; ``title`` is a generic heading.
+    """
+    if not isinstance(w, dict):
+        return None
+    text = w.get("content") or w.get("text") or w.get("headline")
+    if not text:
+        share = w.get("share")
+        if isinstance(share, dict):
+            text = share.get("text")
+    if not text:
+        text = w.get("title") or w.get("description")
+    if not text:
+        return None
+    return str(text).strip() or None
+
+
 def build_warnings_summary(parsed: dict[str, Any]) -> str:
     parts: list[str] = []
-    v9 = parsed.get("warnings_v9") or {}
-    if isinstance(v9, dict) and v9:
-        if "warnings" in v9 and v9["warnings"]:
-            for w in v9["warnings"]:
-                if isinstance(w, dict):
-                    text = w.get("title") or w.get("headline") or w.get("text")
-                    if text:
-                        parts.append(str(text))
-        for key in ("title", "headline", "text", "description"):
-            if v9.get(key):
-                parts.append(str(v9[key]))
-        if not parts:
-            parts.append(json.dumps(v9, ensure_ascii=False)[:500])
+    v9 = parsed.get("warnings_v9")
+    candidates: list[Any] = []
+    if isinstance(v9, list):
+        candidates.extend(v9)
+    elif isinstance(v9, dict) and v9:
+        if isinstance(v9.get("warnings"), list):
+            candidates.extend(v9["warnings"])
+        candidates.append(v9)
+        # v9 may be keyed by period ("forecast", "current", …) with warning objects as values.
+        for val in v9.values():
+            if isinstance(val, dict):
+                candidates.append(val)
+            elif isinstance(val, list):
+                candidates.extend(val)
+    seen: set[str] = set()
+    for w in candidates:
+        text = _warning_text(w)
+        if text and text not in seen:
+            seen.add(text)
+            parts.append(text)
 
     wm = parsed.get("warn_maps") or {}
     for key, label in WARN_MAP_LABELS.items():
